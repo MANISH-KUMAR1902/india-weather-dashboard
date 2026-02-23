@@ -20,8 +20,8 @@ if not API_KEY:
 
 
 # 🔄 Auto refresh every 60 sec
-st.experimental_autorefresh(interval=60000, key="refresh")
-
+from streamlit_autorefresh import st_autorefresh
+st_autorefresh(interval=60000, key="refresh")
 # Fetch data
 df = fetch_weather(API_KEY)
 
