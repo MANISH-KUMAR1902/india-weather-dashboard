@@ -1,40 +1,58 @@
 import streamlit as st
-import pandas as pd
-import time
+from data_fetch import fetch_weather
+from datetime import datetime
 
-st.set_page_config(page_title="India Weather Dashboard", layout="wide")
+st.set_page_config(
+    page_title="India Live Weather Dashboard",
+    layout="wide",
+    page_icon="🌦"
+)
+
 st.title("🇮🇳 Live India Weather Dashboard")
+st.caption("Real-time weather monitoring across Indian States")
 
-file_path = "weather_data.csv"
-refresh_interval = 10
+# 🔐 Get API Key safely from Streamlit secrets
+API_KEY = st.secrets["API_KEY"]
 
-# Read CSV
-df = pd.read_csv(file_path)
+# 🔄 Auto refresh every 60 sec
+st.experimental_autorefresh(interval=60000, key="refresh")
 
-# Clean columns
-df.columns = df.columns.str.strip()
-df.columns = df.columns.str.replace("Â", "")
+# Fetch data
+df = fetch_weather(API_KEY)
 
-# Convert time automatically
-df["Time"] = pd.to_datetime(df["Time"])
+if df.empty:
+    st.error("⚠ Unable to fetch weather data.")
+    st.stop()
 
-# Get latest record per state
-latest_df = df.sort_values("Time").groupby("State").tail(1)
+# Sort by temperature
+df = df.sort_values("Temperature (°C)", ascending=False)
 
+# ---- Metrics ----
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("Total Cities", len(df))
+
+with col2:
+    hottest = df.iloc[0]
+    st.metric("🔥 Hottest City", hottest["State"])
+
+with col3:
+    st.metric("Last Updated", datetime.now().strftime("%H:%M:%S"))
+
+st.divider()
+
+# ---- Charts ----
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("🌡 Temperature by State")
-    st.bar_chart(latest_df.set_index("State")["Temperature (°C)"])
+    st.subheader("🌡 Temperature by City")
+    st.bar_chart(df.set_index("State")["Temperature (°C)"])
 
 with col2:
-    st.subheader("💧 Humidity by State")
-    st.bar_chart(latest_df.set_index("State")["Humidity (%)"])
+    st.subheader("💧 Humidity by City")
+    st.bar_chart(df.set_index("State")["Humidity (%)"])
 
-max_row = latest_df.loc[latest_df["Temperature (°C)"].idxmax()]
 st.success(
-    f"🔥 Hottest State Right Now: {max_row['State']} - {max_row['Temperature (°C)']}°C"
+    f"🔥 Hottest Right Now: {hottest['State']} - {hottest['Temperature (°C)']}°C"
 )
-
-time.sleep(refresh_interval)
-st.rerun()
