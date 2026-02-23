@@ -12,7 +12,11 @@ st.title("🇮🇳 Live India Weather Dashboard")
 st.caption("Real-time weather monitoring across Indian States")
 
 # 🔐 Get API Key safely from Streamlit secrets
-API_KEY = st.secrets["API_KEY"]
+API_KEY = st.secrets.get("API_KEY")
+
+if not API_KEY:
+    st.error("API Key not found. Please configure secrets.")
+    st.stop()
 
 
 # 🔄 Auto refresh every 60 sec
